@@ -1,0 +1,72 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+// Custom dark theme built on our amber accent instead of Material's
+// default purple. If your installed @angular/material version uses the
+// newer M3 theming API (mat.theme(...) with a token map) instead of this
+// M2 API (mat.define-dark-theme / mat.all-component-themes), the Angular
+// Material upgrade guide has a straightforward find-and-replace for this
+// block — everything else in the app is unaffected either way.
+$probe-primary: mat.m2-define-palette(mat.$m2-amber-palette, 600, 300, 800);
+$probe-accent: mat.m2-define-palette(mat.$m2-blue-palette, 500);
+$probe-warn: mat.m2-define-palette(mat.$m2-red-palette, 500);
+
+$probe-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: $probe-primary,
+    accent: $probe-accent,
+    warn: $probe-warn,
+  ),
+  typography: mat.m2-define-typography-config(
+    $font-family: '"IBM Plex Sans", -apple-system, sans-serif'
+  ),
+  density: -2,
+));
+
+@include mat.all-component-themes($probe-theme);
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #12161d;
+  --panel: #181e27;
+  --panel-2: #1e2530;
+  --raised: #232b38;
+  --border: #2b3444;
+  --border-soft: #232b38;
+  --text: #e7eaf0;
+  --text-dim: #8b93a4;
+  --text-faint: #5b6478;
+  --amber: #e2a03f;
+  --amber-dim: #8a651f;
+  --blue: #4e8fe0;
+  --green: #4fb583;
+  --purple: #a682e0;
+  --red: #e2604a;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+// Tone down Material's default surfaces to sit on our ink/panel palette
+// instead of its stock dark greys.
+.mat-mdc-card, .mat-drawer, .mat-toolbar, .mat-mdc-tab-header {
+  background: var(--panel) !important;
+}
+.mat-mdc-form-field {
+  font-family: var(--mono);
+}
+.mat-icon {
+  vertical-align: middle;
+}

@@ -1,0 +1,157 @@
+<mat-sidenav-container class="h-screen bg-ink">
+  <mat-sidenav mode="side" opened class="!w-[260px] !bg-panel !border-r !border-border">
+    <div class="p-4 border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <mat-icon class="text-amber">bolt</mat-icon>
+        <span class="text-[15px] font-medium">Probe</span>
+      </div>
+      <button mat-icon-button (click)="auth.logout()" matTooltip="Log out">
+        <mat-icon class="text-text-dim !text-[18px]">logout</mat-icon>
+      </button>
+    </div>
+
+    <div class="p-3 border-b border-border" *ngIf="auth.user() as user">
+      <mat-form-field appearance="outline" class="w-full !text-[12.5px]" subscriptSizing="dynamic">
+        <mat-select [ngModel]="auth.activeWorkspaceId()" (ngModelChange)="switchWorkspace($event)">
+          <mat-option *ngFor="let w of user.workspaces" [value]="w.id">{{ w.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="px-4 pt-3 pb-1 text-[10.5px] uppercase tracking-wider text-text-faint">History</div>
+    <mat-nav-list class="!p-2 overflow-y-auto" style="max-height: calc(100vh - 160px)">
+      <p class="text-[12.5px] text-text-faint px-3 py-2 leading-relaxed" *ngIf="!history.length">
+        Requests you send will show up here for your whole team.
+      </p>
+      <a mat-list-item *ngFor="let h of history" (click)="method = h.method; url = h.url" class="!h-9 cursor-pointer">
+        <div class="flex items-center gap-2 w-full">
+          <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded min-w-[42px] text-center" [ngClass]="methodBadgeClass(h.method)">{{ h.method }}</span>
+          <span class="text-[12px] text-text-dim truncate flex-1">{{ h.url }}</span>
+          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" [ngClass]="statusDotClass(h.status)"></span>
+        </div>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="!bg-ink flex flex-col">
+    <div class="p-4 border-b border-border">
+      <div class="flex gap-2 mb-2">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-32">
+          <mat-select [(ngModel)]="method">
+            <mat-option *ngFor="let m of ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS']" [value]="m">{{ m }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 font-mono">
+          <input matInput placeholder="https://api.example.com/v1/resource" [(ngModel)]="url" (keydown.enter)="send()" />
+        </mat-form-field>
+        <button mat-stroked-button (click)="copyAsCurl()" matTooltip="Copy as cURL">
+          <mat-icon class="!text-[16px]">content_copy</mat-icon>
+        </button>
+        <button mat-flat-button color="primary" (click)="send()" [disabled]="sending">
+          {{ sending ? 'Sending…' : 'Send' }}
+        </button>
+      </div>
+
+      <mat-tab-group animationDuration="150ms" mat-stretch-tabs="false">
+        <mat-tab label="Params">
+          <div class="pt-3 flex flex-col gap-2">
+            <div class="flex gap-2 items-center" *ngFor="let p of params; let i = index">
+              <mat-checkbox [(ngModel)]="p.enabled"></mat-checkbox>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 font-mono">
+                <input matInput placeholder="key" [(ngModel)]="p.key" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 font-mono">
+                <input matInput placeholder="value" [(ngModel)]="p.value" />
+              </mat-form-field>
+              <button mat-icon-button (click)="removeParam(i)"><mat-icon class="text-text-faint !text-[18px]">close</mat-icon></button>
+            </div>
+            <button mat-button (click)="addParam()"><mat-icon class="!text-[16px]">add</mat-icon> Add param</button>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Headers">
+          <div class="pt-3 flex flex-col gap-2">
+            <div class="flex gap-2 items-center" *ngFor="let h of headers; let i = index">
+              <mat-checkbox [(ngModel)]="h.enabled"></mat-checkbox>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 font-mono">
+                <input matInput placeholder="key" [(ngModel)]="h.key" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 font-mono">
+                <input matInput placeholder="value" [(ngModel)]="h.value" />
+              </mat-form-field>
+              <button mat-icon-button (click)="removeHeader(i)"><mat-icon class="text-text-faint !text-[18px]">close</mat-icon></button>
+            </div>
+            <button mat-button (click)="addHeader()"><mat-icon class="!text-[16px]">add</mat-icon> Add header</button>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Body">
+          <div class="pt-3 flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-44">
+                <mat-select [(ngModel)]="bodyType">
+                  <mat-option value="none">No body</mat-option>
+                  <mat-option value="json">JSON</mat-option>
+                  <mat-option value="text">Text / raw</mat-option>
+                  <mat-option value="form">Form URL-encoded</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-stroked-button (click)="formatJson()" [disabled]="bodyType==='none'">Format JSON</button>
+            </div>
+            <mat-form-field appearance="outline" class="w-full font-mono">
+              <textarea matInput rows="7" [(ngModel)]="bodyText" [disabled]="bodyType==='none'" placeholder='{{ "{" }} "key": "value" {{ "}" }}'></textarea>
+            </mat-form-field>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Auth">
+          <div class="pt-3 flex flex-col gap-2">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-52">
+              <mat-select [(ngModel)]="authType">
+                <mat-option value="none">No auth</mat-option>
+                <mat-option value="bearer">Bearer token</mat-option>
+                <mat-option value="basic">Basic auth</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-80 font-mono" *ngIf="authType==='bearer'">
+              <input matInput placeholder="token" [(ngModel)]="bearerToken" />
+            </mat-form-field>
+            <div class="flex gap-2" *ngIf="authType==='basic'">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-40 font-mono">
+                <input matInput placeholder="username" [(ngModel)]="basicUser" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="!w-40 font-mono">
+                <input matInput type="password" placeholder="password" [(ngModel)]="basicPass" />
+              </mat-form-field>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <div class="flex-1 min-h-0 flex flex-col">
+      <div class="flex items-center gap-4 px-5 py-3 border-b border-border">
+        <span class="font-mono text-[12px] font-semibold" [ngClass]="statusColorClass()">{{ statusLabel() }}</span>
+        <span class="font-mono text-[12px] text-text-dim" *ngIf="result">time <b class="text-text">{{ result.timeMs }} ms</b></span>
+        <span class="font-mono text-[12px] text-text-dim" *ngIf="result">size <b class="text-text">{{ humanSize(result.sizeBytes) }}</b></span>
+        <span class="flex-1"></span>
+        <button mat-icon-button (click)="copyResponse()" matTooltip="Copy response" *ngIf="result">
+          <mat-icon class="text-text-dim !text-[18px]">content_copy</mat-icon>
+        </button>
+      </div>
+
+      <div class="mx-5 mt-3 p-3 rounded-lg border border-accent-red bg-accent-red/10 text-[12px] text-text-dim" *ngIf="errorMsg">
+        <b class="text-accent-red">Request failed.</b> {{ errorMsg }}
+      </div>
+
+      <div class="flex-1 overflow-auto px-5 py-4">
+        <div class="text-text-faint text-[13px] text-center py-10 leading-relaxed" *ngIf="!result && !errorMsg">
+          <div class="text-[14px] text-text-dim mb-1">No request sent yet</div>
+          Requests go through your Probe server, so target CORS policy doesn't matter — and there's no size cap.
+        </div>
+        <app-json-tree *ngIf="parsedJson !== undefined" [value]="parsedJson"></app-json-tree>
+        <div class="font-mono text-[12.5px] whitespace-pre-wrap break-words" *ngIf="result && parsedJson === undefined">{{ result.bodyText }}</div>
+      </div>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
