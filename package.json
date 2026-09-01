@@ -4,7 +4,9 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build"
+    "build": "node scripts/generate-env.js && ng build --configuration production",
+    "build:dev": "ng build --configuration development",
+    "vercel-build": "node scripts/generate-env.js && ng build --configuration production"
   },
   "dependencies": {
     "@angular/animations": "^18.2.0",
@@ -30,5 +32,8 @@
     "sass": "^1.79.4",
     "tailwindcss": "^3.4.13",
     "typescript": "~5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
