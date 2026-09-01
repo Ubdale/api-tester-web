@@ -38,6 +38,9 @@ export class WorkspaceComponent implements OnInit {
   bearerToken = '';
   basicUser = '';
   basicPass = '';
+  // Off by default and never remembered between requests: skipping certificate
+  // checks should be a deliberate act each time.
+  insecureSkipTlsVerify = false;
 
   sending = false;
   result: ProxyResult | null = null;
@@ -120,7 +123,13 @@ export class WorkspaceComponent implements OnInit {
     const body = (this.bodyType === 'none' || ['GET', 'HEAD'].includes(this.method)) ? undefined : this.bodyText;
 
     try {
-      const res = await this.api.send({ method: this.method, url: full, headers, body });
+      const res = await this.api.send({
+        method: this.method,
+        url: full,
+        headers,
+        body,
+        insecureSkipTlsVerify: this.insecureSkipTlsVerify
+      });
       this.result = res;
       if (res.bodyText) {
         try { this.parsedJson = JSON.parse(res.bodyText); } catch { this.parsedJson = undefined; }

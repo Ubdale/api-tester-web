@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -13,13 +13,14 @@ export interface ProxyResult {
   bodyBase64: string | null;
   sizeBytes: number;
   timeMs: number;
+  tlsWarning?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private http: HttpClient) {}
 
-  send(payload: { method: string; url: string; headers?: Record<string,string>; body?: string }) {
+  send(payload: { method: string; url: string; headers?: Record<string,string>; body?: string; insecureSkipTlsVerify?: boolean }) {
     return firstValueFrom(this.http.post<ProxyResult>(`${environment.apiUrl}/proxy`, payload));
   }
 
